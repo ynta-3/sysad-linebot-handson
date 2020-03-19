@@ -62,6 +62,10 @@ func main() {
 					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(text)).Do(); err != nil {
 						log.Print(err)
 					}
+				default:
+					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(helpMessage)).Do(); err != nil {
+						log.Print(err)
+					}
 				}
 			}
 		}
@@ -72,6 +76,17 @@ func main() {
 	}
 
 }
+
+var helpMessage = `使い方
+テキストメッセージ: 
+	"おみくじ"がメッセージに入ってれば今日の運勢を占うよ！
+	それ以外はやまびこを返すよ！
+スタンプ: 
+	スタンプの情報を答えるよ！
+位置情報:
+	その場所の天気・気温・湿度を答えるよ！
+それ以外:
+	それ以外にはまだ対応してないよ！ごめんね...`
 
 func parse(message string) string {
 	if strings.Contains(message, "おみくじ") {
@@ -141,8 +156,8 @@ func weather(location *linebot.LocationMessage) (string, error) {
 	//メッセージ作成
 	text := ` 現在の天気情報
 天気 : ` + weatherData.Weather[0].Main + `
-気温 : ` + fmt.Sprintf("%.2f", (weatherData.Info.Temp-273.15)) + `
-湿度 : ` + fmt.Sprintf("%.2f", weatherData.Info.Humidity)
+気温 : ` + fmt.Sprintf("%.2f", (weatherData.Info.Temp-273.15)) + "℃" + `
+湿度 : ` + fmt.Sprintf("%.2f", weatherData.Info.Humidity) + "%"
 
 	return text, nil
 

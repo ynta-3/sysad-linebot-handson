@@ -48,6 +48,10 @@ func main() {
 					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(replyMessage)).Do(); err != nil {
 						log.Print(err)
 					}
+				default:
+					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(helpMessage)).Do(); err != nil {
+						log.Print(err)
+					}
 				}
 			}
 		}
@@ -58,3 +62,11 @@ func main() {
 	}
 
 }
+
+var helpMessage = `使い方
+テキストメッセージ: 
+	やまびこを返すよ！
+スタンプ: 
+	スタンプの情報を答えるよ！
+それ以外:
+	それ以外にはまだ対応してないよ！ごめんね...`
