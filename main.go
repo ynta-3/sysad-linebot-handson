@@ -42,10 +42,14 @@ func main() {
 			if event.Type == linebot.EventTypeMessage {
 				switch message := event.Message.(type) {
 				case *linebot.TextMessage:
+
+					// 疎通確認用
 					if event.ReplyToken == "00000000000000000000000000000000" {
 						return
 					}
-					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(parse(message.Text))).Do(); err != nil {
+
+					replyMessage := getReplyMessage(message.Text)
+					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(replyMessage)).Do(); err != nil {
 						log.Print(err)
 					}
 				case *linebot.StickerMessage:
@@ -55,11 +59,11 @@ func main() {
 						log.Print(err)
 					}
 				case *linebot.LocationMessage:
-					text, err := weather(message)
+					replyMessage, err := getWeather(message)
 					if err != nil {
 						log.Print(err)
 					}
-					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(text)).Do(); err != nil {
+					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(replyMessage)).Do(); err != nil {
 						log.Print(err)
 					}
 				default:
@@ -88,14 +92,14 @@ var helpMessage = `使い方
 それ以外:
 	それ以外にはまだ対応してないよ！ごめんね...`
 
-func parse(message string) string {
+func getReplyMessage(message string) string {
 	if strings.Contains(message, "おみくじ") {
-		return fortune()
+		return getFortune()
 	}
 	return message
 }
 
-func fortune() string {
+func getFortune() string {
 	oracles := map[int]string{
 		0: "大吉",
 		1: "中吉",
@@ -131,7 +135,7 @@ type Info struct {
 	Humidity float32 `json:"humidity"` // 湿度(%)
 }
 
-func weather(location *linebot.LocationMessage) (string, error) {
+func getWeather(location *linebot.LocationMessage) (string, error) {
 
 	// 緯度経度からOWMのURLを作成
 	lat := strconv.FormatFloat(location.Latitude, 'f', 6, 64)

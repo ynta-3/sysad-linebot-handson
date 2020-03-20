@@ -36,9 +36,12 @@ func main() {
 			if event.Type == linebot.EventTypeMessage {
 				switch message := event.Message.(type) {
 				case *linebot.TextMessage:
+
+					// 疎通確認用
 					if event.ReplyToken == "00000000000000000000000000000000" {
 						return
 					}
+
 					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(message.Text)).Do(); err != nil {
 						log.Print(err)
 					}

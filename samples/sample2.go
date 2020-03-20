@@ -37,10 +37,14 @@ func main() {
 			if event.Type == linebot.EventTypeMessage {
 				switch message := event.Message.(type) {
 				case *linebot.TextMessage:
+
+					// 疎通確認用
 					if event.ReplyToken == "00000000000000000000000000000000" {
 						return
 					}
-					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(parse(message.Text))).Do(); err != nil {
+
+					replyMessage := getReplyMessage(message.Text)
+					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(replyMessage)).Do(); err != nil {
 						log.Print(err)
 					}
 				case *linebot.StickerMessage:
@@ -73,14 +77,14 @@ var helpMessage = `使い方
 それ以外:
 	それ以外にはまだ対応してないよ！ごめんね...`
 
-func parse(message string) string {
+func getReplyMessage(message string) string {
 	if strings.Contains(message, "おみくじ") {
-		return fortune()
+		return getFortune()
 	}
 	return message
 }
 
-func fortune() string {
+func getFortune() string {
 	oracles := map[int]string{
 		0: "大吉",
 		1: "中吉",
