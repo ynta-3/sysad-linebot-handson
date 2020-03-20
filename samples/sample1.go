@@ -36,8 +36,8 @@ func main() {
 		}
 		for _, event := range events {
 			if event.Type == linebot.EventTypeMessage {
-				// 疎通確認用
-				if event.ReplyToken == "00000000000000000000000000000000" {
+				const verifyToken = "00000000000000000000000000000000"
+				if event.ReplyToken == verifyToken {
 					return
 				}
 				replyMessage := getReplyMessage(event)
@@ -54,7 +54,7 @@ func main() {
 
 }
 
-var helpMessage = `使い方
+const helpMessage = `使い方
 テキストメッセージ: 
 	やまびこを返すよ！
 スタンプ: 
