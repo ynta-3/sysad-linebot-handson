@@ -40,36 +40,13 @@ func main() {
 		}
 		for _, event := range events {
 			if event.Type == linebot.EventTypeMessage {
-				switch message := event.Message.(type) {
-				case *linebot.TextMessage:
-
-					// 疎通確認用
-					if event.ReplyToken == "00000000000000000000000000000000" {
-						return
-					}
-
-					replyMessage := getReplyMessage(message.Text)
-					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(replyMessage)).Do(); err != nil {
-						log.Print(err)
-					}
-				case *linebot.StickerMessage:
-					replyMessage := fmt.Sprintf(
-						"sticker id is %s, stickerResourceType is %s", message.StickerID, message.StickerResourceType)
-					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(replyMessage)).Do(); err != nil {
-						log.Print(err)
-					}
-				case *linebot.LocationMessage:
-					replyMessage, err := getWeather(message)
-					if err != nil {
-						log.Print(err)
-					}
-					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(replyMessage)).Do(); err != nil {
-						log.Print(err)
-					}
-				default:
-					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(helpMessage)).Do(); err != nil {
-						log.Print(err)
-					}
+				// 疎通確認用
+				if event.ReplyToken == "00000000000000000000000000000000" {
+					return
+				}
+				replyMessage := getReplyMessage(event)
+				if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(replyMessage)).Do(); err != nil {
+					log.Print(err)
 				}
 			}
 		}
@@ -92,11 +69,31 @@ var helpMessage = `使い方
 それ以外:
 	それ以外にはまだ対応してないよ！ごめんね...`
 
-func getReplyMessage(message string) string {
-	if strings.Contains(message, "おみくじ") {
-		return getFortune()
+func getReplyMessage(event *linebot.Event) (replyMessage string) {
+
+	switch message := event.Message.(type) {
+	case *linebot.TextMessage:
+		if strings.Contains(message.Text, "おみくじ") {
+			return getFortune()
+		}
+		return message.Text
+
+	case *linebot.StickerMessage:
+		replyMessage := fmt.Sprintf("sticker id is %s, stickerResourceType is %s", message.StickerID, message.StickerResourceType)
+		return replyMessage
+
+	case *linebot.LocationMessage:
+		replyMessage, err := getWeather(message)
+		if err != nil {
+			log.Print(err)
+		}
+		return replyMessage
+
+	default:
+		return helpMessage
+
 	}
-	return message
+
 }
 
 func getFortune() string {
