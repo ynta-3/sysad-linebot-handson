@@ -246,7 +246,7 @@ func dealTodo(message *linebot.TextMessage) string {
 	// TodoリストにTodoを追加
 	} else if token[1] == "add" {
 		return addTodo(token)
-	// Todoリスト削除
+	// Todoリストから指定したIDのTodoを削除
 	} else if token[1] == "done" {
 		return deleteTodo(token)
 	}
