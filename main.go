@@ -1,9 +1,9 @@
+
 package main
 
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
@@ -12,10 +12,33 @@ import (
 	"strings"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/jmoiron/sqlx"
+
 	"github.com/line/line-bot-sdk-go/linebot"
 )
 
+var (
+	db *sqlx.DB
+)
+
 func main() {
+	rand.Seed(time.Now().UnixNano())
+
+	_db, err := sqlx.Connect(
+		"mysql",
+		fmt.Sprintf(
+			"%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local",
+			os.Getenv("DB_USERNAME"),
+			os.Getenv("DB_HOSTNAME"),
+			os.Getenv("DB_PORT"),
+			os.Getenv("DB_DATABASE"),
+			))
+
+	if err != nil {
+		log.Fatalf("Cannot Connect to Database: %s", err)
+	}
+	db = _db
 
 	bot, err := linebot.New(
 		os.Getenv("CHANNEL_SECRET"),
@@ -59,13 +82,22 @@ func main() {
 }
 
 const helpMessage = `使い方
-テキストメッセージ: 
+テキストメッセージ:
 	"おみくじ"がメッセージに入ってれば今日の運勢を占うよ！
 	それ以外はやまびこを返すよ！
-スタンプ: 
+スタンプ:
 	スタンプの情報を答えるよ！
 位置情報:
 	その場所の天気・気温・湿度を答えるよ！
+TodoList:
+	"todo"に続けて実行したい操作を入力してね！
+		list
+		add "タスク名" "期限"
+		done "タスクID"
+	例:
+		todo list
+		todo add レポート 2/24
+		todo done 12
 それ以外:
 	それ以外にはまだ対応してないよ！ごめんね...`
 
@@ -75,7 +107,10 @@ func getReplyMessage(event *linebot.Event) (replyMessage string) {
 	case *linebot.TextMessage:
 		if strings.Contains(message.Text, "おみくじ") {
 			return getFortune()
+		} else if strings.HasPrefix(message.Text, "todo") {
+			return dealTodo(message)
 		}
+
 		return message.Text
 
 	case *linebot.StickerMessage:
@@ -109,8 +144,6 @@ func getFortune() string {
 		8: "中凶",
 		9: "大凶",
 	}
-
-	rand.Seed(time.Now().UnixNano())
 	return oracles[rand.Intn(10)]
 }
 
@@ -144,13 +177,11 @@ func getWeather(location *linebot.LocationMessage) (string, error) {
 	if err != nil {
 		return "内部でエラーが発生しました", err
 	}
-
 	defer res.Body.Close()
-	byteArray, _ := ioutil.ReadAll(res.Body)
-	jsonBytes := ([]byte)(string(byteArray[:]))
 
-	weatherData := new(WeatherData)
-	if err := json.Unmarshal(jsonBytes, weatherData); err != nil {
+	weatherData := WeatherData{}
+	err = json.NewDecoder(res.Body).Decode(&weatherData)
+	if err != nil {
 		return "内部でエラーが発生しました", err
 	}
 
@@ -162,4 +193,70 @@ func getWeather(location *linebot.LocationMessage) (string, error) {
 
 	return text, nil
 
+}
+
+type Task struct {
+	ID uint			`db:"id"`
+	Todo string  `db:"todo"`
+	DueDate string  `db:"due_date"`
+}
+
+type Tasks []Task
+
+func dealTodo(message *linebot.TextMessage) string {
+	token := strings.Split(message.Text, " ")
+	if len(token) <= 1 {
+			return helpMessage
+	}
+	if token[1] == "list" {
+		return getTodoList()
+	} else if token[1] == "add" {
+		return addTodo(token)
+	} else if token[1] == "done" {
+		return deleteTodo(token)
+	}
+	return helpMessage
+}
+
+func getTodoList() string {
+	tasks := Tasks{}
+	err := db.Select(&tasks, "SELECT * from tasks")
+	if err != nil {
+		fmt.Print(err)
+		return  fmt.Sprintf("db error: %v", err)
+	}
+	replyMessage := "ID/ToDo/期限"
+	for _, task := range tasks {
+		replyMessage += fmt.Sprintf("\n%d/%s/%s", task.ID, task.Todo, task.DueDate)
+	}
+	return replyMessage
+}
+
+func addTodo(token []string) string {
+	result, err := db.Exec("INSERT INTO tasks (todo, due_date) VALUES (?, ?)", token[2], token[3])
+	if err != nil {
+		fmt.Print(err)
+		return fmt.Sprintf("db error: %v", err)
+	}
+	todoID, err := result.LastInsertId()
+	if err != nil {
+		fmt.Print(err)
+		return fmt.Sprintf("db error: %v", err)
+	}
+	replyMessage := fmt.Sprintf("todo added\nID:%d\ntodo:%s\n期限:%s", todoID, token[2], token[3])
+	return replyMessage
+}
+
+func deleteTodo(token []string) string {
+	id, err := strconv.Atoi(token[2])
+	if err != nil {
+		return "内部でエラーが発生しました"
+	}
+	_, err = db.Exec("DELETE FROM tasks WHERE id = ?", id)
+	if err != nil {
+		fmt.Print(err)
+		return fmt.Sprintf("db error: %v", err)
+	}
+	replyMessage := fmt.Sprintf("todo deleted\nID:%d", id)
+	return replyMessage
 }
