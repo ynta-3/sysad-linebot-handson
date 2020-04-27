@@ -27,7 +27,7 @@ var (
 	db *sqlx.DB
 )
 
-// main関数は最初に呼び出されることが決まっている
+// main関数は最初に呼び出されることがGo言語の仕様として決まっている
 func main() {
 	// ランダムな数値を生成する際のシード値の設定
 	rand.Seed(time.Now().UnixNano())
