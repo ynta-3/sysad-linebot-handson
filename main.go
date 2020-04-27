@@ -243,7 +243,7 @@ func dealTodo(message *linebot.TextMessage) string {
 	// Todoリスト表示
 	if token[1] == "list" {
 		return getTodoList()
-	// Todoリスト追加
+	// TodoリストにTodoを追加
 	} else if token[1] == "add" {
 		return addTodo(token)
 	// Todoリスト削除
