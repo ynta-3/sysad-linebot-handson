@@ -5,12 +5,10 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/line/line-bot-sdk-go/linebot"
 )
 
-// #2 おみくじの実装
 func main() {
 
 	bot, err := linebot.New(
@@ -55,9 +53,9 @@ func main() {
 }
 
 const helpMessage = `使い方
-テキストメッセージ: 
+テキストメッセージ:
 	やまびこを返すよ！
-スタンプ: 
+スタンプ:
 	スタンプの情報を答えるよ！
 それ以外:
 	それ以外にはまだ対応してないよ！ごめんね...`
@@ -66,9 +64,6 @@ func getReplyMessage(event *linebot.Event) (replyMessage string) {
 
 	switch message := event.Message.(type) {
 	case *linebot.TextMessage:
-		if strings.Contains(message.Text, "おみくじ") {
-			return getFortune()
-		}
 		return message.Text
 
 	case *linebot.StickerMessage:

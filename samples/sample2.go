@@ -14,6 +14,7 @@ import (
 
 // #2 おみくじの実装
 func main() {
+	rand.Seed(time.Now().UnixNano())
 
 	bot, err := linebot.New(
 		os.Getenv("CHANNEL_SECRET"),
@@ -57,10 +58,10 @@ func main() {
 }
 
 const helpMessage = `使い方
-テキストメッセージ: 
+テキストメッセージ:
 	"おみくじ"がメッセージに入ってれば今日の運勢を占うよ！
 	それ以外はやまびこを返すよ！
-スタンプ: 
+スタンプ:
 	スタンプの情報を答えるよ！
 それ以外:
 	それ以外にはまだ対応してないよ！ごめんね...`
@@ -98,7 +99,5 @@ func getFortune() string {
 		8: "中凶",
 		9: "大凶",
 	}
-
-	rand.Seed(time.Now().UnixNano())
 	return oracles[rand.Intn(10)]
 }

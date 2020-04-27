@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
@@ -17,6 +16,7 @@ import (
 
 // #3 天気確認機能の実装
 func main() {
+	rand.Seed(time.Now().UnixNano())
 
 	bot, err := linebot.New(
 		os.Getenv("CHANNEL_SECRET"),
@@ -60,10 +60,10 @@ func main() {
 }
 
 const helpMessage = `使い方
-テキストメッセージ: 
+テキストメッセージ:
 	"おみくじ"がメッセージに入ってれば今日の運勢を占うよ！
 	それ以外はやまびこを返すよ！
-スタンプ: 
+スタンプ:
 	スタンプの情報を答えるよ！
 位置情報:
 	その場所の天気・気温・湿度を答えるよ！
@@ -110,8 +110,6 @@ func getFortune() string {
 		8: "中凶",
 		9: "大凶",
 	}
-
-	rand.Seed(time.Now().UnixNano())
 	return oracles[rand.Intn(10)]
 }
 
@@ -145,13 +143,11 @@ func getWeather(location *linebot.LocationMessage) (string, error) {
 	if err != nil {
 		return "内部でエラーが発生しました", err
 	}
-
 	defer res.Body.Close()
-	byteArray, _ := ioutil.ReadAll(res.Body)
-	jsonBytes := ([]byte)(string(byteArray[:]))
 
-	weatherData := new(WeatherData)
-	if err := json.Unmarshal(jsonBytes, weatherData); err != nil {
+	weatherData := WeatherData{}
+	err = json.NewDecoder(res.Body).Decode(&weatherData)
+	if err != nil {
 		return "内部でエラーが発生しました", err
 	}
 
