@@ -12,6 +12,8 @@ import (
 	"github.com/line/line-bot-sdk-go/linebot"
 )
 
+const verifyToken = "00000000000000000000000000000000"
+
 // #2 おみくじの実装
 func main() {
 	rand.Seed(time.Now().UnixNano())
@@ -38,11 +40,11 @@ func main() {
 			return
 		}
 		for _, event := range events {
+			if event.ReplyToken == verifyToken {
+				return
+			}
+
 			if event.Type == linebot.EventTypeMessage {
-				const verifyToken = "00000000000000000000000000000000"
-				if event.ReplyToken == verifyToken {
-					return
-				}
 				replyMessage := getReplyMessage(event)
 				if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(replyMessage)).Do(); err != nil {
 					log.Print(err)

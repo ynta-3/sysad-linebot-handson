@@ -9,8 +9,9 @@ import (
 	"github.com/line/line-bot-sdk-go/linebot"
 )
 
-func main() {
+const verifyToken = "00000000000000000000000000000000"
 
+func main() {
 	bot, err := linebot.New(
 		os.Getenv("CHANNEL_SECRET"),
 		os.Getenv("CHANNEL_ACCESS_TOKEN"),
@@ -33,11 +34,10 @@ func main() {
 			return
 		}
 		for _, event := range events {
+			if event.ReplyToken == verifyToken {
+				return
+			}
 			if event.Type == linebot.EventTypeMessage {
-				const verifyToken = "00000000000000000000000000000000"
-				if event.ReplyToken == verifyToken {
-					return
-				}
 				replyMessage := getReplyMessage(event)
 				if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(replyMessage)).Do(); err != nil {
 					log.Print(err)
