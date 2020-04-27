@@ -20,7 +20,7 @@ const verifyToken = "00000000000000000000000000000000"
 
 // main関数は最初に呼び出されることが決まっている
 func main() {
-	// ランダムな数値を利用する際のシード値の設定
+	// ランダムな数値を生成する際のシード値の設定
 	rand.Seed(time.Now().UnixNano())
 
 	// LINEのAPIを利用する設定
@@ -89,7 +89,7 @@ const helpMessage = `使い方
 func getReplyMessage(event *linebot.Event) (replyMessage string) {
 	// 来たメッセージの種類によって分岐する
 	switch message := event.Message.(type) {
-		// テキストメッセージが来たとき
+	// テキストメッセージが来たとき
 	case *linebot.TextMessage:
 		// さらに「おみくじ」という文字列が含まれているとき
 		if strings.Contains(message.Text, "おみくじ") {
