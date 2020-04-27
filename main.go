@@ -91,7 +91,7 @@ func main() {
 		}
 	})
 
-	// LINEサーバからのリクエストを受け取る
+	// 指定したポートでLISTEN(待機)してLINEサーバからのリクエストを受け取る
 	if err := http.ListenAndServe(":"+os.Getenv("PORT"), nil); err != nil {
 		log.Fatal(err)
 	}
