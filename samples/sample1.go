@@ -1,6 +1,6 @@
 package main
 
-// 必要なライブラリを使う宣言
+// 利用したい外部のコードを読み込む
 import (
 	"fmt"
 	"log"
@@ -12,9 +12,9 @@ import (
 
 const verifyToken = "00000000000000000000000000000000"
 
-// 最初に実行される関数
+// main関数は最初に呼び出されることが決まっている
 func main() {
-	// lineのAPIを利用する設定
+	// LINEのAPIを利用する設定
 	bot, err := linebot.New(
 		os.Getenv("CHANNEL_SECRET"),
 		os.Getenv("CHANNEL_ACCESS_TOKEN"),
