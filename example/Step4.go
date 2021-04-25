@@ -1,4 +1,3 @@
-// #3 天気確認機能の実装
 package main
 
 // 利用したい外部のコードを読み込む
@@ -13,15 +12,39 @@ import (
 	"strings"
 	"time"
 
-	"github.com/line/line-bot-sdk-go/linebot"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/jmoiron/sqlx"
+
+	"github.com/line/line-bot-sdk-go/v7/linebot"
 )
 
 const verifyToken = "00000000000000000000000000000000"
 
-// main関数は最初に呼び出されることが決まっている
+// main関数外で利用するためにここで宣言する
+// 詳しくは「スコープ」や「グローバル変数」で検索してください
+var (
+	db *sqlx.DB
+)
+
+// main関数は最初に呼び出されることがGo言語の仕様として決まっている
 func main() {
 	// ランダムな数値を生成する際のシード値の設定
 	rand.Seed(time.Now().UnixNano())
+
+	// データベースへ接続する
+	_db, err := sqlx.Connect(
+		"mysql",
+		fmt.Sprintf(
+			"%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local",
+			os.Getenv("DB_USERNAME"),
+			os.Getenv("DB_HOSTNAME"),
+			os.Getenv("DB_PORT"),
+			os.Getenv("DB_DATABASE"),
+		))
+	if err != nil {
+		log.Fatalf("Cannot Connect to Database: %s", err)
+	}
+	db = _db
 
 	// LINEのAPIを利用する設定
 	bot, err := linebot.New(
@@ -68,7 +91,7 @@ func main() {
 		}
 	})
 
-	// LINEサーバからのリクエストを受け取る
+	// 指定したポートでLISTEN(待機)してLINEサーバからのリクエストを受け取る
 	if err := http.ListenAndServe(":"+os.Getenv("PORT"), nil); err != nil {
 		log.Fatal(err)
 	}
@@ -82,6 +105,15 @@ const helpMessage = `使い方
 	スタンプの情報を答えるよ！
 位置情報:
 	その場所の天気・気温・湿度を答えるよ！
+TodoList:
+	"todo"に続けて実行したい操作を入力してね！
+		list
+		add "タスク名" "期限"
+		done "タスクID"
+	例:
+		todo list
+		todo add レポート 2/24
+		todo done 12
 それ以外:
 	それ以外にはまだ対応してないよ！ごめんね...`
 
@@ -91,10 +123,14 @@ func getReplyMessage(event *linebot.Event) (replyMessage string) {
 	switch message := event.Message.(type) {
 	// テキストメッセージが来たとき
 	case *linebot.TextMessage:
-		// さらに「おみくじ」という文字列が含まれているとき
+		// 「おみくじ」という文字列が含まれているとき
 		if strings.Contains(message.Text, "おみくじ") {
 			// おみくじ結果を取得する
 			return getFortune()
+			// 「todo」という文字列で始まるとき
+		} else if strings.HasPrefix(message.Text, "todo") {
+			// Todo用のメッセージを生成する
+			return dealTodo(message)
 		}
 		// そうじゃないときはオウム返しする
 		return message.Text
@@ -183,4 +219,94 @@ func getWeather(location *linebot.LocationMessage) (string, error) {
 湿度 : ` + fmt.Sprintf("%.2f", weatherData.Info.Humidity) + "%"
 
 	return text, nil
+
+}
+
+// データベースでTodoを扱う形式 (構造体)
+type Task struct {
+	ID      uint   `db:"id"`
+	Todo    string `db:"todo"`
+	DueDate string `db:"due_date"`
+}
+
+// Todo用のメッセージを生成
+func dealTodo(message *linebot.TextMessage) string {
+	// 受け取ったメッセージを空白で区切る
+	token := strings.Split(message.Text, " ")
+
+	// 区切った文字列の個数が1つ以下のときはヘルプを返す
+	if len(token) <= 1 {
+		return helpMessage
+	}
+
+	// Todoリスト表示
+	if token[1] == "list" {
+		return getTodoList()
+		// TodoリストにTodoを追加
+	} else if token[1] == "add" {
+		return addTodo(token)
+		// Todoリストから指定したIDのTodoを削除
+	} else if token[1] == "done" {
+		return deleteTodo(token)
+	}
+	return helpMessage
+}
+
+// Todoリストの取得
+func getTodoList() string {
+	var tasks []Task
+	// MySQLデータベースへのクエリを発行して一覧を取得する
+	err := db.Select(&tasks, "SELECT * from tasks")
+	if err != nil {
+		fmt.Print(err)
+		return fmt.Sprintf("db error: %v", err)
+	}
+
+	// メッセージの生成
+	replyMessage := "ID/ToDo/期限"
+	for _, task := range tasks {
+		replyMessage += fmt.Sprintf("\n%d/%s/%s", task.ID, task.Todo, task.DueDate)
+	}
+	return replyMessage
+}
+
+// TodoリストへのTodoの追加
+func addTodo(token []string) string {
+	// MySQLデータベースへのクエリを発行してTodoを追加する
+	result, err := db.Exec("INSERT INTO tasks (todo, due_date) VALUES (?, ?)", token[2], token[3])
+	if err != nil {
+		fmt.Print(err)
+		return fmt.Sprintf("db error: %v", err)
+	}
+
+	// (最後の)追加されたTodoのIDを取得する
+	todoID, err := result.LastInsertId()
+	if err != nil {
+		fmt.Print(err)
+		return fmt.Sprintf("db error: %v", err)
+	}
+
+	// メッセージの生成
+	replyMessage := fmt.Sprintf("todo added\nID:%d\ntodo:%s\n期限:%s", todoID, token[2], token[3])
+	return replyMessage
+}
+
+// Todoの削除
+func deleteTodo(token []string) string {
+	// IDを文字列から数値に変換する
+	id, err := strconv.Atoi(token[2])
+	if err != nil {
+		return "内部でエラーが発生しました"
+	}
+
+	// MySQLデータベースへのクエリを発行してそのIDのTodoを削除する
+	_, err = db.Exec("DELETE FROM tasks WHERE id = ?", id)
+	if err != nil {
+		fmt.Print(err)
+		return fmt.Sprintf("db error: %v", err)
+	}
+
+	// メッセージの生成
+	replyMessage := fmt.Sprintf("todo deleted\nID:%d", id)
+	return replyMessage
 }

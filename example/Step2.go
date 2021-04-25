@@ -1,19 +1,26 @@
+// #2 おみくじの実装
 package main
 
 // 利用したい外部のコードを読み込む
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
+	"strings"
+	"time"
 
-	"github.com/line/line-bot-sdk-go/linebot"
+	"github.com/line/line-bot-sdk-go/v7/linebot"
 )
 
 const verifyToken = "00000000000000000000000000000000"
 
 // main関数は最初に呼び出されることが決まっている
 func main() {
+	// ランダムな数値を生成する際のシード値の設定
+	rand.Seed(time.Now().UnixNano())
+
 	// LINEのAPIを利用する設定
 	bot, err := linebot.New(
 		os.Getenv("CHANNEL_SECRET"),
@@ -67,7 +74,8 @@ func main() {
 
 const helpMessage = `使い方
 テキストメッセージ:
-	やまびこを返すよ！
+	"おみくじ"がメッセージに入ってれば今日の運勢を占うよ！
+	それ以外はやまびこを返すよ！
 スタンプ:
 	スタンプの情報を答えるよ！
 それ以外:
@@ -79,6 +87,12 @@ func getReplyMessage(event *linebot.Event) (replyMessage string) {
 	switch message := event.Message.(type) {
 	// テキストメッセージが来たとき
 	case *linebot.TextMessage:
+		// さらに「おみくじ」という文字列が含まれているとき
+		if strings.Contains(message.Text, "おみくじ") {
+			// おみくじ結果を取得する
+			return getFortune()
+		}
+		// そうじゃないときはオウム返しする
 		return message.Text
 
 	// スタンプが来たとき
@@ -90,4 +104,22 @@ func getReplyMessage(event *linebot.Event) (replyMessage string) {
 	default:
 		return helpMessage
 	}
+}
+
+// おみくじ結果の生成
+func getFortune() string {
+	oracles := map[int]string{
+		0: "大吉",
+		1: "中吉",
+		2: "小吉",
+		3: "末吉",
+		4: "吉",
+		5: "凶",
+		6: "末凶",
+		7: "小凶",
+		8: "中凶",
+		9: "大凶",
+	}
+	// rand.Intn(10)は1～10のランダムな整数を返す
+	return oracles[rand.Intn(10)]
 }
