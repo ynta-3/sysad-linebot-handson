@@ -61,7 +61,7 @@ func main() {
 				if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(replyMessage)).Do(); err != nil {
 					log.Print(err)
 				}
-			// それ以外
+			// それ以外のとき
 			default:
 				continue
 			}
@@ -93,7 +93,7 @@ func getReplyMessage(event *linebot.Event) string {
 	// スタンプが来たとき
 	case *linebot.StickerMessage:
 		return fmt.Sprintf("sticker id is %s, stickerResourceType is %s", message.StickerID, message.StickerResourceType)
-	// それ以外
+	// それ以外のとき
 	default:
 		return helpMessage
 	}
