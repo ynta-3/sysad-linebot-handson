@@ -34,7 +34,7 @@ func init() {
 	db = sqlx.MustConnect(
 		"mysql",
 		fmt.Sprintf(
-			"%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local",
+			"%v@tcp(%v:%v)/%v?charset=utf8&parseTime=True&loc=Local",
 			os.Getenv("DB_USERNAME"),
 			os.Getenv("DB_HOSTNAME"),
 			os.Getenv("DB_PORT"),
@@ -142,7 +142,7 @@ func getReplyMessage(event *linebot.Event) (replyMessage string) {
 
 	// スタンプが来たとき
 	case *linebot.StickerMessage:
-		replyMessage := fmt.Sprintf("sticker id is %s, stickerResourceType is %s", message.StickerID, message.StickerResourceType)
+		replyMessage := fmt.Sprintf("sticker id is %v, stickerResourceType is %v", message.StickerID, message.StickerResourceType)
 		return replyMessage
 
 	// 位置情報が来たとき
@@ -174,7 +174,7 @@ func getFortune() string {
 		8: "中凶",
 		9: "大凶",
 	}
-	// rand.Intn(10)は1～10のランダムな整数を返す
+	// rand.Intn(10)は0～9のランダムな整数を返す
 	return oracles[rand.Intn(len(oracles))]
 }
 
@@ -201,12 +201,12 @@ func getWeather(location *linebot.LocationMessage) (string, error) {
 	// 緯度経度からOpenWeatherMapAPIのURLを作成
 	lat := strconv.FormatFloat(location.Latitude, 'f', 6, 64)
 	lon := strconv.FormatFloat(location.Longitude, 'f', 6, 64)
-	url := "http://api.openweathermap.org/data/2.5/weather?lat=" + lat + "&lon=" + lon + "&APPID=" + os.Getenv("APP_ID")
+	url := fmt.Sprintf("http://api.openweathermap.org/data/2.5/weather?lat=%v&lon=%v&APPID=%v", lat, lon, os.Getenv("APP_ID"))
 
 	// OpenWeatherMapAPIへのリクエスト
 	res, err := http.Get(url)
 	if err != nil {
-		return "内部でエラーが発生しました", err
+		return "Botサーバーでエラーが発生しました", err
 	}
 	defer res.Body.Close()
 
@@ -214,7 +214,7 @@ func getWeather(location *linebot.LocationMessage) (string, error) {
 	weatherData := WeatherData{}
 	err = json.NewDecoder(res.Body).Decode(&weatherData)
 	if err != nil {
-		return "内部でエラーが発生しました", err
+		return "Botサーバーでエラーが発生しました", err
 	}
 
 	// 返信メッセージの作成
@@ -270,7 +270,7 @@ func getTodoList() string {
 	// メッセージの生成
 	replyMessage := "ID/ToDo/期限"
 	for _, task := range tasks {
-		replyMessage += fmt.Sprintf("\n%d/%s/%s", task.ID, task.Todo, task.DueDate)
+		replyMessage += fmt.Sprintf("\n%d/%v/%v", task.ID, task.Todo, task.DueDate)
 	}
 	return replyMessage
 }
@@ -280,19 +280,19 @@ func addTodo(token []string) string {
 	// MySQLデータベースへのクエリを発行してTodoを追加する
 	result, err := db.Exec("INSERT INTO tasks (todo, due_date) VALUES (?, ?)", token[2], token[3])
 	if err != nil {
-		fmt.Print(err)
-		return fmt.Sprintf("db error: %v", err)
+		log.Printf("db error: %v", err)
+		return "Botサーバーでエラーが発生しました"
 	}
 
 	// (最後の)追加されたTodoのIDを取得する
 	todoID, err := result.LastInsertId()
 	if err != nil {
-		fmt.Print(err)
-		return fmt.Sprintf("db error: %v", err)
+		log.Printf("db error: %v", err)
+		return "Botサーバーでエラーが発生しました"
 	}
 
 	// メッセージの生成
-	replyMessage := fmt.Sprintf("todo added\nID:%d\ntodo:%s\n期限:%s", todoID, token[2], token[3])
+	replyMessage := fmt.Sprintf("todo added\nID:%d\ntodo:%v\n期限:%v", todoID, token[2], token[3])
 	return replyMessage
 }
 
@@ -301,14 +301,14 @@ func deleteTodo(token []string) string {
 	// IDを文字列から数値に変換する
 	id, err := strconv.Atoi(token[2])
 	if err != nil {
-		return "内部でエラーが発生しました"
+		return "Botサーバーでエラーが発生しました"
 	}
 
 	// MySQLデータベースへのクエリを発行してそのIDのTodoを削除する
 	_, err = db.Exec("DELETE FROM tasks WHERE id = ?", id)
 	if err != nil {
-		fmt.Print(err)
-		return fmt.Sprintf("db error: %v", err)
+		log.Printf("db error: %v", err)
+		return "Botサーバーでエラーが発生しました"
 	}
 
 	// メッセージの生成

@@ -106,7 +106,7 @@ func getReplyMessage(event *linebot.Event) (replyMessage string) {
 
 	// スタンプが来たとき
 	case *linebot.StickerMessage:
-		return fmt.Sprintf("sticker id is %s, stickerResourceType is %s", message.StickerID, message.StickerResourceType)
+		return fmt.Sprintf("sticker id is %v, stickerResourceType is %v", message.StickerID, message.StickerResourceType)
 
 	// それ以外のとき
 	default:
