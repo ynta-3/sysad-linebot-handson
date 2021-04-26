@@ -1,6 +1,9 @@
 image:
   file: .gitpod.Dockerfile
 
+ports:
+  - port: 8080
+
 vscode:
   extensions:
     - oderwat.indent-rainbow@7.5.0:f1817c0f436735293bd6db0b237e6f0c
