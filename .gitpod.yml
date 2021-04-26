@@ -9,3 +9,4 @@ vscode:
     - oderwat.indent-rainbow@7.5.0:f1817c0f436735293bd6db0b237e6f0c
     - streetsidesoftware.code-spell-checker@1.10.2:20a3564a228d86889667483e215c3f98
     - coenraads.bracket-pair-colorizer@1.0.61:7ea3d3d6c244a9a11dadf5de61b756f8
+    - golang.go
