@@ -26,13 +26,12 @@ var (
 	db *sqlx.DB
 )
 
-// main関数は最初に呼び出されることがGo言語の仕様として決まっている
-func main() {
+// init関数はmain関数実行前の初期化のために呼び出されることがGo言語の仕様として決まっている
+func init() {
 	// ランダムな数値を生成する際のシード値の設定
 	rand.Seed(time.Now().UnixNano())
-
 	// データベースへ接続する
-	_db, err := sqlx.Connect(
+	db = sqlx.MustConnect(
 		"mysql",
 		fmt.Sprintf(
 			"%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local",
@@ -41,11 +40,10 @@ func main() {
 			os.Getenv("DB_PORT"),
 			os.Getenv("DB_DATABASE"),
 		))
-	if err != nil {
-		log.Fatalf("Cannot Connect to Database: %s", err)
-	}
-	db = _db
+}
 
+// main関数は最初に呼び出されることがGo言語の仕様として決まっている
+func main() {
 	// LINEのAPIを利用する設定
 	bot, err := linebot.New(
 		os.Getenv("CHANNEL_SECRET"),
@@ -57,41 +55,47 @@ func main() {
 
 	// LINEサーバからのリクエストを受け取ったときの処理
 	http.HandleFunc("/callback", func(w http.ResponseWriter, req *http.Request) {
-		fmt.Print("Accessed\n")
+		log.Println("Accessed")
 
 		// リクエストを扱いやすい形に変換する
 		events, err := bot.ParseRequest(req)
+		switch err {
+		case nil:
 		// 変換に失敗したとき
-		if err != nil {
-			fmt.Println("ParseRequest error:", err)
-			if err == linebot.ErrInvalidSignature {
-				w.WriteHeader(400)
-			} else {
-				w.WriteHeader(500)
-			}
+		case linebot.ErrInvalidSignature:
+			log.Println("ParseRequest error:", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		default:
+			log.Println("ParseRequest error:", err)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		// LINEサーバから来たメッセージによってやる処理を変える
+		// LINEサーバから来たメッセージによって行う処理を変える
 		for _, event := range events {
-			// LINEサーバのverify時は何もしない
+			// LINEサーバからのverify時は何もしない
 			if event.ReplyToken == verifyToken {
 				return
 			}
 
+			switch event.Type {
 			// メッセージが来たとき
-			if event.Type == linebot.EventTypeMessage {
+			case linebot.EventTypeMessage:
 				// 返信を生成する
 				replyMessage := getReplyMessage(event)
 				// 生成した返信を送信する
 				if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(replyMessage)).Do(); err != nil {
 					log.Print(err)
 				}
+			// それ以外のとき
+			default:
+				continue
 			}
 		}
 	})
 
-	// 指定したポートでLISTEN(待機)してLINEサーバからのリクエストを受け取る
+	// LINEサーバからのリクエストを受け取るプロセスを起動
 	if err := http.ListenAndServe(":"+os.Getenv("PORT"), nil); err != nil {
 		log.Fatal(err)
 	}
@@ -123,16 +127,17 @@ func getReplyMessage(event *linebot.Event) (replyMessage string) {
 	switch message := event.Message.(type) {
 	// テキストメッセージが来たとき
 	case *linebot.TextMessage:
-		// 「おみくじ」という文字列が含まれているとき
+		// さらに「おみくじ」という文字列が含まれているとき
 		if strings.Contains(message.Text, "おみくじ") {
 			// おみくじ結果を取得する
 			return getFortune()
-			// 「todo」という文字列で始まるとき
+			// あるいは「todo」という文字列で始まるとき
 		} else if strings.HasPrefix(message.Text, "todo") {
 			// Todo用のメッセージを生成する
 			return dealTodo(message)
 		}
-		// そうじゃないときはオウム返しする
+
+		// それ以外のときはオウム返しする
 		return message.Text
 
 	// スタンプが来たとき
@@ -149,7 +154,7 @@ func getReplyMessage(event *linebot.Event) (replyMessage string) {
 		}
 		return replyMessage
 
-	// どっちでもないとき
+	// それ以外のとき
 	default:
 		return helpMessage
 	}
