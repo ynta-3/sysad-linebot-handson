@@ -175,7 +175,7 @@ func getFortune() string {
 		9: "大凶",
 	}
 	// rand.Intn(10)は1～10のランダムな整数を返す
-	return oracles[rand.Intn(10)]
+	return oracles[rand.Intn(len(oracles))]
 }
 
 // 天気の情報で帰ってくる形式 (1)
