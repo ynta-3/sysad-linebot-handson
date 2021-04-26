@@ -1,4 +1,4 @@
 {
-  "files.autoSave": "afterDelay",
+  "editor.autoSave": "on",
   "go.autocompleteUnimportedPackages": true
 }
