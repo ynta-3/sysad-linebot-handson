@@ -1,5 +1,5 @@
 // #3 天気確認機能の実装
-package main_
+package main
 
 // 利用したい外部のコードを読み込む
 import (
@@ -169,7 +169,7 @@ func getWeather(location *linebot.LocationMessage) (string, error) {
 	// 緯度経度からOpenWeatherMapAPIのURLを作成
 	lat := strconv.FormatFloat(location.Latitude, 'f', 6, 64)
 	lon := strconv.FormatFloat(location.Longitude, 'f', 6, 64)
-	url := "http://api.openweathermap.org/data/2.5/weather?lat=" + lat + "&lon=" + lon + "&APPID=" + os.Getenv("APP_ID")
+	url := "https://api.openweathermap.org/data/2.5/weather?lat=" + lat + "&lon=" + lon + "&appid=" + os.Getenv("APP_ID")
 
 	// OpenWeatherMapAPIへのリクエスト
 	res, err := http.Get(url)
