@@ -1,6 +1,0 @@
-{
-  "go.autocompleteUnimportedPackages": true,
-  "editor.defaultFormatter": "golang.go",
-  "editor.formatOnPaste": true,
-  "editor.formatOnType": true
-}
