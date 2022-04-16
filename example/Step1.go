@@ -4,6 +4,7 @@ package main
 // 利用したい外部のコードを読み込む
 import (
 	"fmt"
+	"github.com/joho/godotenv"
 	"log"
 	"net/http"
 	"os"
@@ -11,12 +12,19 @@ import (
 	"github.com/line/line-bot-sdk-go/v7/linebot"
 )
 
-const (
-	verifyToken = "00000000000000000000000000000000"
-)
 
 // main関数は最初に呼び出されることがGo言語の仕様として決まっている
 func main() {
+	// ここで.envファイル全体を読み込みます。
+	// この読み込み処理がないと、個々の環境変数が取得出来ません。
+	// 読み込めなかったら err にエラーが入ります。
+	err := godotenv.Load(".env")
+
+	// もし err がnilではないなら、"読み込み出来ませんでした"が出力されます。
+	if err != nil {
+		fmt.Printf("読み込み出来ませんでした: %v", err)
+	}
+
 	// LINEのAPIを利用する設定
 	bot, err := linebot.New(
 		os.Getenv("CHANNEL_SECRET"),
@@ -32,26 +40,17 @@ func main() {
 
 		// リクエストを扱いやすい形に変換する
 		events, err := bot.ParseRequest(req)
-		switch err {
-		case nil:
-		// 変換に失敗したとき
-		case linebot.ErrInvalidSignature:
-			log.Println("ParseRequest error:", err)
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		default:
-			log.Println("ParseRequest error:", err)
-			w.WriteHeader(http.StatusInternalServerError)
+		if err != nil {
+			if err == linebot.ErrInvalidSignature {
+				w.WriteHeader(http.StatusBadRequest)
+			} else {
+				w.WriteHeader(http.StatusInternalServerError)
+			}
 			return
 		}
 
 		// LINEサーバから来たメッセージによって行う処理を変える
 		for _, event := range events {
-			// LINEサーバからのverify時は何もしない
-			if event.ReplyToken == verifyToken {
-				return
-			}
-
 			switch event.Type {
 			// メッセージが来たとき
 			case linebot.EventTypeMessage:
