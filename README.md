@@ -3,5 +3,6 @@
 # sysad-linebot-handson
 
 traP SysAd体験会　ハンズオン用資料
-## 試料のURLここに貼ろうね！＠！！
+
+https://md.trap.jp/FjPC0gi9SjaSSVa-xzc6YQ
 
