@@ -5,7 +5,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/joho/godotenv"
 	"log"
 	"math/rand"
 	"net/http"
@@ -13,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/joho/godotenv"
 
 	"github.com/line/line-bot-sdk-go/v7/linebot"
 )
@@ -150,25 +151,26 @@ type Weather struct {
 	Icon string `json:"icon"` // 現状使わない
 }
 
-type WeekWeather struct {
-	Week []Daily `json:"daily"`
+type DaysWeather struct {
+	WeatherPer3h []WeatherData `json:"list"`
 }
 
-type Daily struct {
-	Temporary TempInfo  `json:"temp"`
-	Humidity  float32   `json:"humidity"`
-	Weathers  []Weather `json:"weather"`
+type WeatherData struct {
+	MainData Main      `json:"main"`
+	Humidity float32   `json:"humidity"`
+	Weathers []Weather `json:"weather"`
 }
 
-type TempInfo struct {
-	Min float32 `json:"min"`
-	Max float32 `json:"max"`
+type Main struct {
+	TempMin  float32 `json:"temp_min"`
+	TempMax  float32 `json:"temp_max"`
+	Humidity float32 `json:"humidity"`
 }
 
 func getWeekWeather(location *linebot.LocationMessage) (*linebot.FlexMessage, error) {
 	lat := strconv.FormatFloat(location.Latitude, 'f', 6, 64)
 	lon := strconv.FormatFloat(location.Longitude, 'f', 6, 64)
-	url := fmt.Sprintf("https://api.openweathermap.org/data/2.5/onecall?lat=%s&lon=%s&exclude=current,minutely,hourly,alerts&appid=%s", lat, lon, os.Getenv("APP_ID"))
+	url := fmt.Sprintf("https://api.openweathermap.org/data/2.5/forecast?lat=%s&lon=%s&exclude=current,minutely,hourly,alerts&appid=%s", lat, lon, os.Getenv("APP_ID"))
 	// OpenWeatherMapAPIへのリクエスト
 	res, err := http.Get(url)
 	if err != nil {
@@ -177,7 +179,7 @@ func getWeekWeather(location *linebot.LocationMessage) (*linebot.FlexMessage, er
 	defer res.Body.Close()
 
 	// OpenWeatherMapAPIからのレスポンスを扱いやすい形に変換する
-	weatherData := WeekWeather{}
+	weatherData := DaysWeather{}
 	err = json.NewDecoder(res.Body).Decode(&weatherData)
 	if err != nil {
 		return nil, err
@@ -185,7 +187,7 @@ func getWeekWeather(location *linebot.LocationMessage) (*linebot.FlexMessage, er
 	return CreateWeatherCarouseMessage(weatherData), nil
 }
 
-func CreateWeatherCarouseMessage(data WeekWeather) *linebot.FlexMessage {
+func CreateWeatherCarouseMessage(data DaysWeather) *linebot.FlexMessage {
 	resp := linebot.NewFlexMessage(
 		"Weather Information",
 		&linebot.CarouselContainer{
@@ -214,7 +216,7 @@ func CreateWeatherCarouseMessage(data WeekWeather) *linebot.FlexMessage {
 					},
 					Hero: &linebot.ImageComponent{
 						Type:        linebot.FlexComponentTypeImage,
-						URL:         ConvertWeatherImage(data.Week[0].Weathers[0].Icon),
+						URL:         ConvertWeatherImage(data.WeatherPer3h[0].Weathers[0].Icon),
 						Size:        linebot.FlexImageSizeTypeXxl,
 						AspectRatio: linebot.FlexImageAspectRatioType1to1,
 						AspectMode:  linebot.FlexImageAspectModeTypeFit,
@@ -226,7 +228,7 @@ func CreateWeatherCarouseMessage(data WeekWeather) *linebot.FlexMessage {
 						Contents: []linebot.FlexComponent{
 							&linebot.TextComponent{
 								Type: linebot.FlexComponentTypeText,
-								Text: "最高気温 : " + strconv.Itoa(int(data.Week[0].Temporary.Max - 273.15)) + "℃\n",
+								Text: "最高気温 : " + strconv.Itoa(int(data.WeatherPer3h[0].MainData.TempMax-273.15)) + "℃\n",
 								Flex: linebot.IntPtr(1),
 								Size: linebot.FlexTextSizeTypeXl,
 								Wrap: true,
@@ -235,7 +237,7 @@ func CreateWeatherCarouseMessage(data WeekWeather) *linebot.FlexMessage {
 							},
 							&linebot.TextComponent{
 								Type: linebot.FlexComponentTypeText,
-								Text: "最低気温 : " + strconv.Itoa(int(data.Week[0].Temporary.Min - 273.15)) + "℃\n",
+								Text: "最低気温 : " + strconv.Itoa(int(data.WeatherPer3h[0].MainData.TempMin-273.15)) + "℃\n",
 								Flex: linebot.IntPtr(1),
 								Size: linebot.FlexTextSizeTypeXl,
 								Wrap: true,
@@ -244,7 +246,7 @@ func CreateWeatherCarouseMessage(data WeekWeather) *linebot.FlexMessage {
 							},
 							&linebot.TextComponent{
 								Type: linebot.FlexComponentTypeText,
-								Text: fmt.Sprintf("湿度 : %.2f %%",data.Week[0].Humidity),
+								Text: fmt.Sprintf("湿度 : %.2f %%", data.WeatherPer3h[0].MainData.Humidity),
 								//Contents:   nil,
 								Flex: linebot.IntPtr(6),
 								Size: linebot.FlexTextSizeTypeSm,
@@ -299,7 +301,7 @@ func CreateWeatherCarouseMessage(data WeekWeather) *linebot.FlexMessage {
 					},
 					Hero: &linebot.ImageComponent{
 						Type:        linebot.FlexComponentTypeImage,
-						URL:         ConvertWeatherImage(data.Week[1].Weathers[0].Icon),
+						URL:         ConvertWeatherImage(data.WeatherPer3h[8].Weathers[0].Icon),
 						Size:        linebot.FlexImageSizeTypeXxl,
 						AspectRatio: linebot.FlexImageAspectRatioType1to1,
 						AspectMode:  linebot.FlexImageAspectModeTypeFit,
@@ -311,7 +313,7 @@ func CreateWeatherCarouseMessage(data WeekWeather) *linebot.FlexMessage {
 						Contents: []linebot.FlexComponent{
 							&linebot.TextComponent{
 								Type: linebot.FlexComponentTypeText,
-								Text: "最高気温 : " + strconv.Itoa(int(data.Week[1].Temporary.Max - 273.15)) + "℃\n",
+								Text: "最高気温 : " + strconv.Itoa(int(data.WeatherPer3h[8].MainData.TempMax-273.15)) + "℃\n",
 								Flex: linebot.IntPtr(1),
 								Size: linebot.FlexTextSizeTypeXl,
 								Wrap: true,
@@ -320,7 +322,7 @@ func CreateWeatherCarouseMessage(data WeekWeather) *linebot.FlexMessage {
 							},
 							&linebot.TextComponent{
 								Type: linebot.FlexComponentTypeText,
-								Text: "最低気温 : " + strconv.Itoa(int(data.Week[1].Temporary.Min - 273.15)) + "℃\n",
+								Text: "最低気温 : " + strconv.Itoa(int(data.WeatherPer3h[8].MainData.TempMin-273.15)) + "℃\n",
 								Flex: linebot.IntPtr(1),
 								Size: linebot.FlexTextSizeTypeXl,
 								Wrap: true,
@@ -329,7 +331,7 @@ func CreateWeatherCarouseMessage(data WeekWeather) *linebot.FlexMessage {
 							},
 							&linebot.TextComponent{
 								Type: linebot.FlexComponentTypeText,
-								Text: fmt.Sprintf("湿度 : %.2f %%",data.Week[1].Humidity),
+								Text: fmt.Sprintf("湿度 : %.2f %%", data.WeatherPer3h[8].MainData.Humidity),
 								//Contents:   nil,
 								Flex: linebot.IntPtr(6),
 								Size: linebot.FlexTextSizeTypeSm,
@@ -384,7 +386,7 @@ func CreateWeatherCarouseMessage(data WeekWeather) *linebot.FlexMessage {
 					},
 					Hero: &linebot.ImageComponent{
 						Type:        linebot.FlexComponentTypeImage,
-						URL:         ConvertWeatherImage(data.Week[2].Weathers[0].Icon),
+						URL:         ConvertWeatherImage(data.WeatherPer3h[16].Weathers[0].Icon),
 						Size:        linebot.FlexImageSizeTypeXxl,
 						AspectRatio: linebot.FlexImageAspectRatioType1to1,
 						AspectMode:  linebot.FlexImageAspectModeTypeFit,
@@ -396,7 +398,7 @@ func CreateWeatherCarouseMessage(data WeekWeather) *linebot.FlexMessage {
 						Contents: []linebot.FlexComponent{
 							&linebot.TextComponent{
 								Type: linebot.FlexComponentTypeText,
-								Text: "最高気温 : " + strconv.Itoa(int(data.Week[2].Temporary.Max - 273.15)) + "℃\n",
+								Text: "最高気温 : " + strconv.Itoa(int(data.WeatherPer3h[16].MainData.TempMax-273.15)) + "℃\n",
 								Flex: linebot.IntPtr(1),
 								Size: linebot.FlexTextSizeTypeXl,
 								Wrap: true,
@@ -405,7 +407,7 @@ func CreateWeatherCarouseMessage(data WeekWeather) *linebot.FlexMessage {
 							},
 							&linebot.TextComponent{
 								Type: linebot.FlexComponentTypeText,
-								Text: "最低気温 : " + strconv.Itoa(int(data.Week[2].Temporary.Min - 273.15)) + "℃\n",
+								Text: "最低気温 : " + strconv.Itoa(int(data.WeatherPer3h[16].MainData.TempMin-273.15)) + "℃\n",
 								Flex: linebot.IntPtr(1),
 								Size: linebot.FlexTextSizeTypeXl,
 								Wrap: true,
@@ -414,7 +416,7 @@ func CreateWeatherCarouseMessage(data WeekWeather) *linebot.FlexMessage {
 							},
 							&linebot.TextComponent{
 								Type: linebot.FlexComponentTypeText,
-								Text: fmt.Sprintf("湿度 : %.2f %%",data.Week[2].Humidity),
+								Text: fmt.Sprintf("湿度 : %.2f %%", data.WeatherPer3h[16].MainData.Humidity),
 								//Contents:   nil,
 								Flex: linebot.IntPtr(6),
 								Size: linebot.FlexTextSizeTypeSm,
@@ -454,5 +456,5 @@ func CreateWeatherCarouseMessage(data WeekWeather) *linebot.FlexMessage {
 }
 
 func ConvertWeatherImage(pngNumber string) string {
-	return fmt.Sprintf("https://openweathermap.org/img/w/%s.png",pngNumber)
+	return fmt.Sprintf("https://openweathermap.org/img/w/%s.png", pngNumber)
 }
