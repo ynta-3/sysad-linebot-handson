@@ -213,7 +213,7 @@ func CreateWeatherCarouseMessage(data DaysWeather) *linebot.FlexMessage {
 	}
 	var humidity = []float32{0, 0, 0}
 	for i := 0; i < 24; i++ {
-		humidity[i/8] += data.WeatherPer3h[0].MainData.Humidity / 8
+		humidity[i/8] += data.WeatherPer3h[i].MainData.Humidity / 8
 	}
 
 	resp := linebot.NewFlexMessage(
