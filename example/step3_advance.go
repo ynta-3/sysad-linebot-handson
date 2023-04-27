@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"math/rand"
 	"net/http"
 	"os"
@@ -187,7 +188,34 @@ func getWeekWeather(location *linebot.LocationMessage) (*linebot.FlexMessage, er
 	return CreateWeatherCarouseMessage(weatherData), nil
 }
 
+func max(a int, b int) int {
+	if a >= b {
+		return a
+	}
+	return b
+}
+
+func min(a int, b int) int {
+	if a <= b {
+		return a
+	}
+	return b
+}
+
 func CreateWeatherCarouseMessage(data DaysWeather) *linebot.FlexMessage {
+	var tempMax = []int{math.MinInt, math.MinInt, math.MinInt}
+	for i := 0; i < 24; i++ {
+		tempMax[i/8] = max(tempMax[i/8], int(data.WeatherPer3h[i].MainData.TempMax-273.15))
+	}
+	var tempMin = []int{math.MaxInt, math.MaxInt, math.MaxInt}
+	for i := 0; i < 24; i++ {
+		tempMin[i/8] = min(tempMin[i/8], int(data.WeatherPer3h[i].MainData.TempMin-273.15))
+	}
+	var humidity = []float32{0, 0, 0}
+	for i := 0; i < 24; i++ {
+		humidity[i/8] += data.WeatherPer3h[0].MainData.Humidity / 8
+	}
+
 	resp := linebot.NewFlexMessage(
 		"Weather Information",
 		&linebot.CarouselContainer{
@@ -228,7 +256,7 @@ func CreateWeatherCarouseMessage(data DaysWeather) *linebot.FlexMessage {
 						Contents: []linebot.FlexComponent{
 							&linebot.TextComponent{
 								Type: linebot.FlexComponentTypeText,
-								Text: "最高気温 : " + strconv.Itoa(int(data.WeatherPer3h[0].MainData.TempMax-273.15)) + "℃\n",
+								Text: "最高気温 : " + strconv.Itoa(tempMax[0]) + "℃\n",
 								Flex: linebot.IntPtr(1),
 								Size: linebot.FlexTextSizeTypeXl,
 								Wrap: true,
@@ -237,7 +265,7 @@ func CreateWeatherCarouseMessage(data DaysWeather) *linebot.FlexMessage {
 							},
 							&linebot.TextComponent{
 								Type: linebot.FlexComponentTypeText,
-								Text: "最低気温 : " + strconv.Itoa(int(data.WeatherPer3h[0].MainData.TempMin-273.15)) + "℃\n",
+								Text: "最低気温 : " + strconv.Itoa(tempMin[0]) + "℃\n",
 								Flex: linebot.IntPtr(1),
 								Size: linebot.FlexTextSizeTypeXl,
 								Wrap: true,
@@ -246,7 +274,7 @@ func CreateWeatherCarouseMessage(data DaysWeather) *linebot.FlexMessage {
 							},
 							&linebot.TextComponent{
 								Type: linebot.FlexComponentTypeText,
-								Text: fmt.Sprintf("湿度 : %.2f %%", data.WeatherPer3h[0].MainData.Humidity),
+								Text: fmt.Sprintf("湿度 : %.2f %%", humidity[0]),
 								//Contents:   nil,
 								Flex: linebot.IntPtr(6),
 								Size: linebot.FlexTextSizeTypeSm,
@@ -313,7 +341,7 @@ func CreateWeatherCarouseMessage(data DaysWeather) *linebot.FlexMessage {
 						Contents: []linebot.FlexComponent{
 							&linebot.TextComponent{
 								Type: linebot.FlexComponentTypeText,
-								Text: "最高気温 : " + strconv.Itoa(int(data.WeatherPer3h[8].MainData.TempMax-273.15)) + "℃\n",
+								Text: "最高気温 : " + strconv.Itoa(tempMax[1]) + "℃\n",
 								Flex: linebot.IntPtr(1),
 								Size: linebot.FlexTextSizeTypeXl,
 								Wrap: true,
@@ -322,7 +350,7 @@ func CreateWeatherCarouseMessage(data DaysWeather) *linebot.FlexMessage {
 							},
 							&linebot.TextComponent{
 								Type: linebot.FlexComponentTypeText,
-								Text: "最低気温 : " + strconv.Itoa(int(data.WeatherPer3h[8].MainData.TempMin-273.15)) + "℃\n",
+								Text: "最低気温 : " + strconv.Itoa(tempMin[1]) + "℃\n",
 								Flex: linebot.IntPtr(1),
 								Size: linebot.FlexTextSizeTypeXl,
 								Wrap: true,
@@ -331,7 +359,7 @@ func CreateWeatherCarouseMessage(data DaysWeather) *linebot.FlexMessage {
 							},
 							&linebot.TextComponent{
 								Type: linebot.FlexComponentTypeText,
-								Text: fmt.Sprintf("湿度 : %.2f %%", data.WeatherPer3h[8].MainData.Humidity),
+								Text: fmt.Sprintf("湿度 : %.2f %%", humidity[1]),
 								//Contents:   nil,
 								Flex: linebot.IntPtr(6),
 								Size: linebot.FlexTextSizeTypeSm,
@@ -398,7 +426,7 @@ func CreateWeatherCarouseMessage(data DaysWeather) *linebot.FlexMessage {
 						Contents: []linebot.FlexComponent{
 							&linebot.TextComponent{
 								Type: linebot.FlexComponentTypeText,
-								Text: "最高気温 : " + strconv.Itoa(int(data.WeatherPer3h[16].MainData.TempMax-273.15)) + "℃\n",
+								Text: "最高気温 : " + strconv.Itoa(tempMax[2]) + "℃\n",
 								Flex: linebot.IntPtr(1),
 								Size: linebot.FlexTextSizeTypeXl,
 								Wrap: true,
@@ -407,7 +435,7 @@ func CreateWeatherCarouseMessage(data DaysWeather) *linebot.FlexMessage {
 							},
 							&linebot.TextComponent{
 								Type: linebot.FlexComponentTypeText,
-								Text: "最低気温 : " + strconv.Itoa(int(data.WeatherPer3h[16].MainData.TempMin-273.15)) + "℃\n",
+								Text: "最低気温 : " + strconv.Itoa(tempMin[2]) + "℃\n",
 								Flex: linebot.IntPtr(1),
 								Size: linebot.FlexTextSizeTypeXl,
 								Wrap: true,
@@ -416,7 +444,7 @@ func CreateWeatherCarouseMessage(data DaysWeather) *linebot.FlexMessage {
 							},
 							&linebot.TextComponent{
 								Type: linebot.FlexComponentTypeText,
-								Text: fmt.Sprintf("湿度 : %.2f %%", data.WeatherPer3h[16].MainData.Humidity),
+								Text: fmt.Sprintf("湿度 : %.2f %%", humidity[2]),
 								//Contents:   nil,
 								Flex: linebot.IntPtr(6),
 								Size: linebot.FlexTextSizeTypeSm,
