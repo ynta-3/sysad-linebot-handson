@@ -1,4 +1,4 @@
-[![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)]([https://gitpod.io/#https://github.com/s9-sukyu/sysad-linebot-handson](https://gitpod.io/new/#https://github.com/alter334/sysad-linebot-handson))
+[![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/new/#https://github.com/alter334/sysad-linebot-handson)
 
 # sysad-linebot-handson
 
