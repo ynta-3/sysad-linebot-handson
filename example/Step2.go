@@ -42,6 +42,9 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// サーバ起動メッセージ
+	log.Println("サーバが起動しました!")
+
 	// LINEサーバからのリクエストを受け取ったときの処理
 	http.HandleFunc("/callback", func(w http.ResponseWriter, req *http.Request) {
 		log.Println("Accessed")
