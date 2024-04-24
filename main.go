@@ -3,7 +3,12 @@ package main
 // 利用したい外部のコードを読み込む
 import (
 	"fmt"
+	"github.com/joho/godotenv"
 	"log"
+	"net/http"
+	"os"
+
+	"github.com/line/line-bot-sdk-go/v7/linebot"
 )
 
 // main関数外で利用するためにここで宣言する
